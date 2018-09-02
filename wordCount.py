@@ -9,7 +9,7 @@ list = []
 with open(input, 'r') as inputF:
 	for line in inputF:
 		line = line.strip()
-		words = re.split('[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?\n\t ]+', line)
+		words = filter(None, re.split("[.,'!?:;\- \n\"]+", line))
 		for item in words:
 			if item.lower() not in dict:
 				dict[item.lower()] = 1

@@ -8,7 +8,6 @@ list = []
 
 with open(input, 'r') as inputF:
 	for line in inputF:
-		line = line.strip()
 		words = filter(None, re.split("[.,'!?:;\- \n\"]+", line))
 		for item in words:
 			if item.lower() not in dict:

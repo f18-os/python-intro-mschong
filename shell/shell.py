@@ -8,22 +8,16 @@ os.write(1, ("About to fork (pid=%d)\n" % pid).encode())
 
 rc = os.fork()
 argss = sys.argv[1].split(" ")
-for arg in argss:
-    print(arg)
 if rc < 0:
     os.write(2, ("fork failed, returning %d\n" % rc).encode())
     sys.exit(1)
 
 elif rc == 0:                   # child
     if argss[len(argss)-2] == '>':
-        os.write(1, ("Child: My pid==%d.  Parent's pid=%d\n" % 
-                     (os.getpid(), pid)).encode())
-
         os.close(1)                 # redirect child's stdout
         sys.stdout = open(argss[len(argss)-1], "w+")
         fd = sys.stdout.fileno() # os.open("p4-output.txt", os.O_CREAT)
         os.set_inheritable(fd, True)
-        os.write(2, ("Child: opened fd=%d for writing\n" % fd).encode())
 
         for dir in re.split(":", os.environ['PATH']): # try each directory in path
             program = "%s/%s" % (dir, argss[0])

@@ -20,7 +20,7 @@ elif rc == 0:                   # child
                      (os.getpid(), pid)).encode())
 
         os.close(1)                 # redirect child's stdout
-        sys.stdout = open(argss[len(argss)-1], "w")
+        sys.stdout = open(argss[len(argss)-1], "w+")
         fd = sys.stdout.fileno() # os.open("p4-output.txt", os.O_CREAT)
         os.set_inheritable(fd, True)
         os.write(2, ("Child: opened fd=%d for writing\n" % fd).encode())
@@ -28,7 +28,7 @@ elif rc == 0:                   # child
         for dir in re.split(":", os.environ['PATH']): # try each directory in path
             program = "%s/%s" % (dir, argss[0])
             try:
-                os.execve(program, argss, os.environ) # try to exec program
+                os.execve(program, argss[0:len(argss)-2], os.environ) # try to exec program
             except FileNotFoundError:             # ...expected
                 pass                              # ...fail quietly 
 

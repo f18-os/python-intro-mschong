@@ -1,24 +1,74 @@
 #! /usr/bin/env python3
 
 import os, sys, time, re
+import subprocess
+import fileinput
 
 pid = os.getpid()               # get and remember pid
 
-os.write(1, ("About to fork (pid=%d)\n" % pid).encode())
-inp = ""
-#rc = os.fork()
 
-
+inp = input("$ ")
 
 while(inp != 'exit'):
-    inp = input("$ ")
-    rc = os.fork()
     argss = inp.split(" ")
+    if argss[0] == 'cd':
+        os.chdir(argss[1])
+        pass
+    
+
+    rc = os.fork()    
     if rc < 0:
         os.write(2, ("fork failed, returning %d\n" % rc).encode())
         sys.exit(1)
         
     elif rc == 0:                   # child
+        if '|' in inp:
+            pr, pw = os.pipe()
+            rc2 = os.fork()
+            if rc2 < 0:
+                os.write(2, ("fork failed, returning %d\n" % rc).encode())
+                sys.exit(1)
+
+            elif rc2 == 0:
+                
+                args = inp.split('|')
+                args = args[0].split()
+                
+                os.close(1)
+                fd=os.dup(pw)
+                os.set_inheritable(fd, True)
+                
+                for dir in re.split(":", os.environ['PATH']): # try each directory in path
+                    program = "%s/%s" % (dir, args[0])
+                    try:
+                        os.execve(program, args, os.environ) # try to exec program
+                    except FileNotFoundError:             # ...expected
+                        pass                              # ...fail quietly  
+                
+                sys.exit(1)   
+
+            else:                           # parent (forked ok)
+                
+                childPidCode = os.wait()
+                
+                args = inp.split('|')
+                args = args[1].split()
+                
+                os.close(0)
+                fd=os.dup(pr)
+                os.set_inheritable(fd, True)
+
+                for dir in re.split(":", os.environ['PATH']): # try each directory in path
+                    program = "%s/%s" % (dir, args[0])
+                    try:
+                        os.execve(program, args, os.environ) # try to exec program
+                    except FileNotFoundError:             # ...expected
+                        pass                              # ...fail quietly  
+                   
+                           
+                
+                sys.exit(1)
+            
         if argss[len(argss)-2] == '>':
             os.close(1)                 # redirect child's stdout
             sys.stdout = open(argss[len(argss)-1], "w+")
@@ -65,9 +115,7 @@ while(inp != 'exit'):
             
                 
     else:                           # parent (forked ok)
-        os.write(1, ("Parent: My pid=%d.  Child's pid=%d\n" %
-                     (pid, rc)).encode())
+        
         childPidCode = os.wait()
-        os.write(1, ("Parent: Child %d terminated with exit code %d\n" %
-                     childPidCode).encode())
 
+    inp = input("$ ")
